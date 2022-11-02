@@ -11,4 +11,4 @@ torchmetrics
 wandb
 ```
 ## Run the code
-To measure the jaccard similarity on the datasets prepare the dataset following the instruction on data/MCD/README.md and simply run `eval/measure_jaccard.py`
+To measure the jaccard similarity on the datasets prepare the dataset following the instruction on `data/MCD/README.md` and simply run `eval/measure_jaccard.py`
