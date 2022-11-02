@@ -7,6 +7,12 @@ import tqdm
 from scipy.spatial.transform import Rotation
 from torch.utils.data import Dataset
 
+try:
+    from open3d.cuda.pybind.geometry import TriangleMesh
+    from open3d.cuda.pybind.utility import Vector3iVector
+except ImportError:
+    from open3d.cuda.pybind.geometry import TriangleMesh
+    from open3d.cuda.pybind.utility import Vector3iVector
 
 class ShapeCompletionDataset(Dataset):
     def __init__(self, root, json_file_path, subset='train_models_train_views', length=-1):
@@ -47,7 +53,6 @@ class ShapeCompletionDataset(Dataset):
         complete = np.array(mesh.sample_points_uniformly(8192 * 2).points)
 
         partial = np.load(self.root / (partial_path + 'partial.npy'))
-        # partial = np.array(read_point_cloud((self.root / (partial_path + 'pc.pcd')).as_posix()).points)
         partial = partial + np.array([0, 0, -1])
 
         choice = np.random.permutation(partial.shape[0])

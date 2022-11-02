@@ -21,7 +21,7 @@ def main():
     model.cuda()
     model.eval()
 
-    ds = ShapeCompletionDataset(Config.Data.dataset_path, 'data/MCD/build_datasets/train_test_dataset.json',
+    ds = ShapeCompletionDataset(Config.Data.dataset_path, 'data/MCD/splits/train_test_dataset.json',
                          subset='holdout_models_holdout_views')
     dl = DataLoader(
         ds,
