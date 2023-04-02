@@ -54,3 +54,7 @@ def main():
                          )
 
     trainer.fit(model, ckpt_path=ckpt_path)
+
+
+if __name__ == '__main__':
+    main()
