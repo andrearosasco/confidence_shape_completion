@@ -11,8 +11,8 @@ try:
     from open3d.cuda.pybind.geometry import TriangleMesh
     from open3d.cuda.pybind.utility import Vector3iVector
 except ImportError:
-    from open3d.cuda.pybind.geometry import TriangleMesh
-    from open3d.cuda.pybind.utility import Vector3iVector
+    from open3d.cpu.pybind.geometry import TriangleMesh
+    from open3d.cpu.pybind.utility import Vector3iVector
 
 class ShapeCompletionDataset(Dataset):
     def __init__(self, root, json_file_path, subset='train_models_train_views', length=-1):
