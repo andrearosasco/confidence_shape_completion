@@ -10,5 +10,15 @@ timm
 torchmetrics
 wandb
 ```
+### Checkpoints and Splits
+If you have git lfs install you should automatically get the model weights and the dataset splits when you clone the repository. If you don't, you can get them running
+```
+wget https://github.com/andrearosasco/confidence_shape_completion/blob/main/checkpoints/model.ckpt
+wget https://github.com/andrearosasco/confidence_shape_completion/raw/main/data/mcd/splits/train_test_dataset.json
+```
+
 ## Run the code
 To measure the jaccard similarity on the datasets prepare the dataset following the instruction on `data/MCD/README.md` and simply run `eval/measure_jaccard.py`
+To train the network run `train.py`
+
+
