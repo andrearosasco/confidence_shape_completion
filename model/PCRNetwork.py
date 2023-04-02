@@ -23,6 +23,7 @@ try:
 except ImportError:
     from torchmetrics import F1 as F1Score
 
+# from utils.metrics import chamfer_batch_pc
 from torchmetrics import Accuracy, Precision, Recall, MeanMetric
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -51,10 +52,13 @@ class PCRNetwork(pl.LightningModule, ABC):
              'f1': F1Score().cuda(),
              'loss': MeanMetric().cuda(), }
 
+        #  chamfer computation is commented. To turn it on just search 'chamfer' in this file
+        #  and uncomment its instances. The pytorch implementation is pretty slow. You can install
+        #  PCN extension to speed up the computation: https://github.com/qinglew/PCN-PyTorch/tree/master/extensions
         self.metrics = {
             'train': m,
-            'val_models': {**copy.deepcopy(m), **{'jaccard': MeanMetric().cuda()}},
-            'val_views': {**copy.deepcopy(m), **{'jaccard': MeanMetric().cuda()}}
+            'val_models': {**copy.deepcopy(m), **{'jaccard': MeanMetric().cuda()}},  # 'chamfer': MeanMetric().cuda(),
+            'val_views': {**copy.deepcopy(m), **{'jaccard': MeanMetric().cuda()}}  # 'chamfer': MeanMetric().cuda(),
         }
 
         self.training_set, self.valid_set_models, self.valid_set_views = None, None, None
@@ -74,7 +78,7 @@ class PCRNetwork(pl.LightningModule, ABC):
         split = f'{Config.Data.dataset_path}/train_test_dataset.json'
 
         self.training_set = ShapeCompletionDataset(root, split, subset='train_models_train_views')
-        self.valid_set_models = ShapeCompletionDataset(root, split, subset='holdout_models_holdout_views', length=3200)
+        self.valid_set_models = ShapeCompletionDataset(root, split, subset='valid_models_valid_views')
 
     def train_dataloader(self):
         dl = DataLoader(self.training_set,
@@ -87,17 +91,9 @@ class PCRNetwork(pl.LightningModule, ABC):
         return dl
 
     def val_dataloader(self):
-        # # Smaller one
-        # dl1 = DataLoader(
-        #     self.valid_set_views,
-        #     shuffle=False,
-        #     batch_size=Config.Eval.mb_size,
-        #     drop_last=False,
-        #     num_workers=Config.General.num_workers,
-        #     pin_memory=True)
 
         #  Bigger one
-        dl2 = DataLoader(
+        dl = DataLoader(
             self.valid_set_models,
             shuffle=False,
             batch_size=Config.Eval.mb_size,
@@ -105,7 +101,7 @@ class PCRNetwork(pl.LightningModule, ABC):
             num_workers=Config.General.num_workers,
             pin_memory=True)
 
-        return dl2
+        return dl
 
     def forward(self, partial):
         decoder = Decoder(self.sdf)
@@ -126,27 +122,6 @@ class PCRNetwork(pl.LightningModule, ABC):
         partial, ground_truth = batch
 
         fast_weights, _ = self.backbone(partial)
-        # ### Adaptation
-        # if Config.Train.adaptation:
-        #     adaptation_steps = 10
-        #
-        #     fast_weights = [[t.requires_grad_(True) for t in l] for l in fast_weights]
-        #
-        #     for _ in range(adaptation_steps):
-        #         optim = DifferentiableSGD(sum(fast_weights, []), lr=0.1,
-        #                                   momentum=0.9)  # the sum flatten the list of list
-        #
-        #         out = self.sdf(partial, fast_weights)
-        #         # The loss function also computes the sigmoid
-        #         loss = F.binary_cross_entropy_with_logits(out, torch.ones(partial.shape[:2] + (1,),
-        #                                                                   device=Config.General.device))
-        #
-        #         loss.backward(inputs=sum(fast_weights, []), retain_graph=True)
-        #         fast_weights = optim.step()
-        #         fast_weights = [[fast_weights[i].to(Config.General.device),
-        #                          fast_weights[i + 1].to(Config.General.device),
-        #                          fast_weights[i + 2].to(Config.General.device)]
-        #                         for i in range(0, 3 * (Config.Model.depth + 2), 3)]
 
         samples, target = sample_point_cloud_pc(ground_truth, n_points=Config.Data.implicit_input_dimension,
                                                 dist=Config.Data.dist,
@@ -217,39 +192,11 @@ class PCRNetwork(pl.LightningModule, ABC):
         ############# INFERENCE #############
         fast_weights, _ = self.backbone(partial)
 
-        ### Adaptation
-        # if Config.Train.adaptation:
-        #     with torch.enable_grad():
-        #         adaptation_steps = 10
-        #
-        #         fast_weights = [[t.requires_grad_(True) for t in l] for l in fast_weights]
-        #
-        #         for _ in range(adaptation_steps):
-        #             optim = DifferentiableSGD(sum(fast_weights, []), lr=0.1,
-        #                                       momentum=0.9)  # the sum flatten the list of list
-        #
-        #             out = self.sdf(partial, fast_weights)
-        #             loss = F.binary_cross_entropy_with_logits(out, torch.ones(partial.shape[:2] + (1,),
-        #                                                                       device=Config.General.device))
-        #
-        #             loss.backward(inputs=sum(fast_weights, []), retain_graph=True)
-        #             fast_weights = optim.step()
-        #             fast_weights = [[fast_weights[i], fast_weights[i + 1], fast_weights[i + 2]] for i in
-        #                             range(0, 3 * (Config.Model.depth + 2), 3)]
         from dgl.geometry import farthest_point_sampler
         pc1, _ = self.decoder(fast_weights)
         point_idx = farthest_point_sampler(pc1, 8192 * 2)
         pc1 = pc1[torch.arange(point_idx.shape[0]).unsqueeze(-1), point_idx]
 
-        # fp_idxs = fp_sampling(pc1[0:2], 1024)
-        # fp_pc1 = pc1[0:2][torch.arange(fp_idxs.shape[0]).unsqueeze(-1), fp_idxs.long(), :]
-        # vx_pc1 = voxel_downsample(pc1, 0.005)
-        #
-        # import mcubes
-        # grid1 = voxelize_pc(pc1, 0.005)
-        # vertices, triangles = mcubes.marching_cubes(grid1[0].cpu().numpy(), 0.5)
-        # mesh = o3d.geometry.TriangleMesh(triangles=Vector3iVector(triangles), vertices=Vector3dVector(vertices))
-        #
         out2 = self.sdf(samples2, fast_weights)
         pred2 = torch.sigmoid(out2)
 
@@ -263,6 +210,7 @@ class PCRNetwork(pl.LightningModule, ABC):
         metrics = self.metrics['val_models']
 
         metrics['accuracy'](pred, trgt), metrics['precision'](pred, trgt)
+        #  metrics['chamfer'](chamfer_batch_pc(pc1, ground_truth))
         metrics['recall'](pred, trgt), metrics['f1'](pred, trgt)
         metrics['loss'](loss)
         grid1 = voxelize_pc(pc1, 0.025)
@@ -273,7 +221,7 @@ class PCRNetwork(pl.LightningModule, ABC):
 
     @torch.no_grad()
     def validation_epoch_end(self, output):
-        # self.log(f'val_models/jaccard', self.metrics['val_models']['jaccard'].compute())
+
         for k, m in self.metrics['val_models'].items():
             self.log(f'val_models/{k}', m.compute())
 
