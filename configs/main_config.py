@@ -43,7 +43,7 @@ class Config(BaseConfig):
         mb_size = 32
 
     class Data:
-        dataset_path = 'data/MCD'
+        dataset_path = 'data/mcd'
         partial_points = 2048  # number of points per input
         multiplier_complete_sampling = 50
         implicit_input_dimension = 8192 * 2
