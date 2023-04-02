@@ -9,8 +9,7 @@ This is simple enough:
 - 2 - Access the triangles and vertices or the partial point cloud and convert them to a numpy array
 - 3 - Dump them into an `.npy` file
 
-Unfortunately I can't find the original script but if you need to do that and can't do it on your own open an issue,
-and I'll write a new one.
+Unfortunately I can't find the original script but if you need help with it open an issue.
 
 Alternatively you can change the code in `ShapeCompletionDataset.py` to directly read the data in the original format.
 I moved to `.npy` because of `open3d` having problem loading the files concurrently but they could have fixed it now.
