@@ -71,7 +71,7 @@ class PCRNetwork(pl.LightningModule, ABC):
 
     def prepare_data(self):
         root = Config.Data.dataset_path
-        split = 'data/MCD/build_datasets/train_test_dataset.json'
+        split = f'{Config.Data.dataset_path}/train_test_dataset.json'
 
         self.training_set = ShapeCompletionDataset(root, split, subset='train_models_train_views')
         self.valid_set_models = ShapeCompletionDataset(root, split, subset='holdout_models_holdout_views', length=3200)
