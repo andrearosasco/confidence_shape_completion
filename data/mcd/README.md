@@ -1,8 +1,8 @@
 You can download the dataset from [here](https://github.com/aalto-intelligent-robotics/shape_completion_network#download-and-parse-training-and-test-data)
 
-The folder structure is the same, but you will need to change to convert the partial point clouds to npy files
-(**pcd.npy**) containing the 3D list of points (N, 3) and the meshes to 2 npy files: **vertices.npy** (N, 3) and
-**triangles.npy** (N, 3).
+The folder structure is the same, but you will need to change the format of the partial point clouds to `npy`.
+**pcd.npy** containing the 3D list of points (N, 3), **vertices.npy** and
+**triangles.npy** containing the triangles and verticies of the mesh.
 
 This is simple enough:
 - 1 - Read the files with `open3d` or a library of your choice
